@@ -11,16 +11,16 @@
 # Anders Jensen-Urstad <anders@unix.se>
 # License: MIT
 
-site_title=${_1600PR_SITE_TITLE:-"J. Random Photoblogger"} # <title> in HTML and RSS
-site_url=${_1600PR_SITE_URL:-"https://example.com/"}       # Absolute URL to photoblog; used for RSS
-email=${_1600PR_EMAIL:-"foobar@example.com"}               # Email used in default menu HTML
-archive_page=${_1600PR_ARCHIVE_PAGE:-true}                 # If true, create archive page + thumbs.
-sizes=${_1600PR_SIZES:-"1920 1600 1280 800"}  # Image sizes to create (widths). Set to "" to disable.
-rss_items=${_1600PR_RSS_ITEMS:-10}            # Max number of items in RSS file
-web_root_path=${_1600PR_WEB_ROOT_PATH:-"/"}   # Relative URL to site, e.g. / or /photoblog/; this affects links
-db_file=${_1600PR_DB_FILE:-"./_1600pr.dat"}   # Path to the data file
-image_dir=${_1600PR_IMAGE_DIR:-"./images"}    # Directory where original images should be stored
-output_dir=${_1600PR_OUTPUT_DIR:-"./public"}  # Where to build the site
+site_title=${_1600PR_SITE_TITLE:-"z.png"}                   # <title> in HTML and RSS
+site_url=${_1600PR_SITE_URL:-"https://img.znschaffer.com/"} # Absolute URL to photoblog; used for RSS
+email=${_1600PR_EMAIL:-"znschaffer@gmail.com"}              # Email used in default menu HTML
+archive_page=${_1600PR_ARCHIVE_PAGE:-true}                  # If true, create archive page + thumbs.
+sizes=${_1600PR_SIZES:-"1920 1600 1280 800"}                # Image sizes to create (widths). Set to "" to disable.
+rss_items=${_1600PR_RSS_ITEMS:-10}                          # Max number of items in RSS file
+web_root_path=${_1600PR_WEB_ROOT_PATH:-"/"}                 # Relative URL to site, e.g. / or /photoblog/; this affects links
+db_file=${_1600PR_DB_FILE:-"./_1600pr.dat"}                 # Path to the data file
+image_dir=${_1600PR_IMAGE_DIR:-"./images"}                  # Directory where original images should be stored
+output_dir=${_1600PR_OUTPUT_DIR:-"./public"}                # Where to build the site
 
 default_menu="<a href=\"${web_root_path}\">home</a> <a href=\"${web_root_path}photo\">archive</a> <a href=\"mailto:${email}\">contact</a>"
 menu=${_1600PR_MENU:-"${default_menu}"} # Menu HTML
@@ -50,27 +50,34 @@ usage() {
 
 while getopts "hbd:t:r:" opt; do
   case $opt in
-    h) usage; exit;;
-    b) rebuild=true ;;
-    d) post_date="${OPTARG}" ;;
-    t) post_title="${OPTARG}" ;;
-    r) id_to_remove="${OPTARG}" ;;
-    *) usage; exit;; 
+  h)
+    usage
+    exit
+    ;;
+  b) rebuild=true ;;
+  d) post_date="${OPTARG}" ;;
+  t) post_title="${OPTARG}" ;;
+  r) id_to_remove="${OPTARG}" ;;
+  *)
+    usage
+    exit
+    ;;
   esac
 done
 
-get_num_posts () { sed '/^\s*$/d' "${db_file}" | wc -l ; }
-get_latest_id () { tail -n1 "${db_file}" | awk '{print $1}' ; }
-get_new_id () {
+get_num_posts() { sed '/^\s*$/d' "${db_file}" | wc -l; }
+get_latest_id() { tail -n1 "${db_file}" | awk '{print $1}'; }
+get_new_id() {
   highest_id=$(awk '{print $1}' "${db_file}" | sort -n | tail -n1)
   echo $((highest_id + 1))
 }
 # $1: post id
-get_title () {
-  title=$(grep "^${post_id}[[:blank:]]" "${db_file}" \
-    | awk 'BEGIN {FS="\t"}; {print $4}' \
-    | sed 's/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&#39;/g'
-    )
+get_title() {
+  title=$(
+    grep "^${post_id}[[:blank:]]" "${db_file}" |
+      awk 'BEGIN {FS="\t"}; {print $4}' |
+      sed 's/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&#39;/g'
+  )
   date=$(grep "^${post_id}[[:blank:]]" "${db_file}" | awk 'BEGIN {FS="\t"}; {print $2}')
   if [ -n "${title}" ]; then
     echo "${title}"
@@ -80,7 +87,7 @@ get_title () {
 }
 
 # $1: image filename, $2: post id
-gen_thumb () {
+gen_thumb() {
   if [ ! -f "${output_dir}/images/${2}/thumb_${1}" ]; then
     echo "Generating thumbnail for ${1}"
     convert -define jpeg:size=100x65 "${image_dir}/${1}" -thumbnail 100x65^ -gravity center -extent 100x65 "${output_dir}/images/${2}/thumb_${1}"
@@ -89,7 +96,7 @@ gen_thumb () {
 }
 
 # $1: image filename, $2: post id
-gen_image_versions () {
+gen_image_versions() {
   # unsharp values from https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick/
   for size in ${sizes}; do
     if [ ! -f "${output_dir}/images/${2}/${size}_${1}" ]; then
@@ -101,7 +108,7 @@ gen_image_versions () {
 }
 
 # $1: image filename, $2: post id
-gen_images () {
+gen_images() {
   mkdir -p "${output_dir}/images/${2}"
   if [ -n "${sizes}" ]; then
     gen_image_versions "${1}" "${2}"
@@ -114,7 +121,7 @@ gen_images () {
 }
 
 # $1: path, $2: RFC 822 datetime, $3: optional title
-add_image () {
+add_image() {
   orig_file_path=$1
   orig_file_basename=$(basename "${orig_file_path}")
   post_date=$2
@@ -144,7 +151,7 @@ add_image () {
   fi
 
   # Write to db
-  printf "%s\t%s\t%s\t%s\n" "${new_id}" "${post_date}" "${file_basename}" "${post_title}" >> "${db_file}"
+  printf "%s\t%s\t%s\t%s\n" "${new_id}" "${post_date}" "${file_basename}" "${post_title}" >>"${db_file}"
   # Copy original to (non-public) image directory
   cp -p "${orig_file_path}" "${image_dir}/${file_basename}"
   # Create different sizes/thumb
@@ -152,7 +159,7 @@ add_image () {
 }
 
 # $1: filename, $2: post id
-gen_img_src () {
+gen_img_src() {
   title=$(get_title "${2}")
   if [ -n "${sizes}" ]; then
     for size in $sizes; do
@@ -167,7 +174,7 @@ gen_img_src () {
 }
 
 # $1: post id
-gen_post_html () {
+gen_post_html() {
   unset prev_html next_html
 
   post_id=${1}
@@ -178,16 +185,16 @@ gen_post_html () {
   if [ -n "${prev_id}" ]; then
     image_before="<a href=\"${web_root_path}photo/${prev_id}/\">"
     image_after="</a>"
-    prev_html="<a class=\"bold\" href=\"${web_root_path}photo/${prev_id}/\">← older</a> " 
+    prev_html="<a class=\"bold\" href=\"${web_root_path}photo/${prev_id}/\">← older</a> "
   fi
 
   if [ -n "${next_id}" ]; then
-    next_html=" <a class=\"bold\" href=\"${web_root_path}photo/${next_id}/\">newer →</a>" 
+    next_html=" <a class=\"bold\" href=\"${web_root_path}photo/${next_id}/\">newer →</a>"
   fi
 
   mkdir -p "${output_dir}/photo/${post_id}"
 
-  cat <<EOF > "${output_dir}/photo/${post_id}/index.html"
+  cat <<EOF >"${output_dir}/photo/${post_id}/index.html"
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
@@ -211,17 +218,18 @@ gen_post_html () {
 EOF
 }
 
-gen_archive_html () {
+gen_archive_html() {
   echo "Creating archive page"
-  thumb_html=$(sed '1!G;h;$!d' "${db_file}" \
-    | awk -v web_root="${web_root_path}" \
-      'BEGIN { FS="\t" }; {
+  thumb_html=$(
+    sed '1!G;h;$!d' "${db_file}" |
+      awk -v web_root="${web_root_path}" \
+        'BEGIN { FS="\t" }; {
         printf "<a href=\"%sphoto/%s/\"><img src=\"%simages/%s/thumb_%s\" alt=\"%s\"></a>\n",
         web_root, $1, web_root, $1, $3, $2
       }'
-    )
+  )
 
-  cat <<EOF > "${output_dir}/photo/index.html"
+  cat <<EOF >"${output_dir}/photo/index.html"
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
@@ -242,16 +250,16 @@ gen_archive_html () {
 EOF
 }
 
-gen_css () {
-  cat <<EOF > "${output_dir}/style.css"
+gen_css() {
+  cat <<EOF >"${output_dir}/style.css"
 * {
   margin: 0;
   padding: 0;
 }
 
 body {
-  background: black;
-  color: #868e96;
+  background: #fdfdfd;
+  color: #1a1a1a;
   font-family: sans-serif;
   font-size: 0.8em;
   text-align: center;
@@ -262,7 +270,7 @@ body {
 }
 
 a {
-  color: #868e96;
+  color: #1a1a1a;
 }
 
 .image-outer {
@@ -280,10 +288,11 @@ EOF
 
 gen_rss() {
   last_build_date=$(date "+%a, %d %b %Y %H:%M:%S %z")
-  rss_items=$(sed '1!G;h;$!d' "${db_file}" \
-    | head -n "${rss_items}" \
-    | awk -v site_url="${site_url}" -v largest="${sizes%% *}" \
-      'BEGIN { FS="\t" }; {
+  rss_items=$(
+    sed '1!G;h;$!d' "${db_file}" |
+      head -n "${rss_items}" |
+      awk -v site_url="${site_url}" -v largest="${sizes%% *}" \
+        'BEGIN { FS="\t" }; {
         printf "<item>\n"
         if (length($4) > 0) {
           printf "<title>%s</title>\n", $4
@@ -296,9 +305,9 @@ gen_rss() {
         printf "<description><![CDATA[<img src=\"%simages/%s/%s_%s\" />]]></description>\n", site_url, $1, largest, $3
         printf "</item>\n"
       }'
-    )
+  )
 
-  cat <<EOF > "${output_dir}/index.xml"
+  cat <<EOF >"${output_dir}/index.xml"
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
@@ -313,7 +322,7 @@ gen_rss() {
 EOF
 }
 
-rebuild_all () {
+rebuild_all() {
   echo "Rebuilding everything"
   num_posts=$(get_num_posts)
   if [ "${num_posts}" -lt "1" ]; then
@@ -329,7 +338,7 @@ rebuild_all () {
       gen_images "${filename}" "${post_id}"
       gen_post_html "${post_id}"
     fi
-  done < "${db_file}"
+  done <"${db_file}"
 
   if [ "${archive_page}" = true ]; then
     gen_archive_html
@@ -341,10 +350,10 @@ rebuild_all () {
 }
 
 # $1: ID to remove
-remove_post () {
+remove_post() {
   echo "Removing ID ${1}"
   if grep -q "^${1}[[:blank:]]" "${db_file}"; then
-    grep -v "^${1}[[:blank:]]" "${db_file}" > "${db_file}.tmp" && mv "${db_file}.tmp" "${db_file}" 
+    grep -v "^${1}[[:blank:]]" "${db_file}" >"${db_file}.tmp" && mv "${db_file}.tmp" "${db_file}"
   else
     echo "ID ${1} not found in db. Exiting."
     exit 1
@@ -360,9 +369,15 @@ if ! [ -f "${output_dir}/style.css" ]; then
 fi
 
 # Make sure ImageMagick's convert/mogrify are available if image generation is needed
-if [ "${archive_page}" = true ] || [ -n "${sizes}" ] ; then
-  command -v convert >/dev/null 2>&1 || { echo >&2 "Error: ImageMagick convert command not found"; exit 1; }
-  command -v mogrify >/dev/null 2>&1 || { echo >&2 "Error: ImageMagick mogrify command not found"; exit 1; }
+if [ "${archive_page}" = true ] || [ -n "${sizes}" ]; then
+  command -v convert >/dev/null 2>&1 || {
+    echo >&2 "Error: ImageMagick convert command not found"
+    exit 1
+  }
+  command -v mogrify >/dev/null 2>&1 || {
+    echo >&2 "Error: ImageMagick mogrify command not found"
+    exit 1
+  }
 fi
 
 if [ "${rebuild}" = true ]; then
